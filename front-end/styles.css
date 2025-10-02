@@ -1,0 +1,59 @@
+/* styles.css - стили для веб-интерфейса фетального монитора */
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+#chartContainer {
+  width: 90%;
+  max-width: 900px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 20px;
+  position: relative;
+}
+
+#status {
+  margin-top: 10px;
+  font-size: 16px;
+  text-align: center;
+}
+
+.status-green {
+  color: green;
+  font-weight: bold;
+}
+
+.status-yellow {
+  color: orange;
+  font-weight: bold;
+}
+
+.status-red {
+  color: red;
+  font-weight: bold;
+}
+
+canvas {
+  width: 100% !important;
+  height: 400px !important;
+  border-radius: 10px;
+}
+
+/* Дополнительно можно добавить плавные переходы для интерактивных элементов */
+#status span {
+  transition: color 0.3s ease;
+}
