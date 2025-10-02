@@ -1,0 +1,29 @@
+services:
+
+  drivers:
+    build: ./DriverEmulationService
+    container_name: drivers
+    ports:
+      - "8080:8080"
+    networks:
+      - monitor-network
+
+  monitor:
+    build: ./MonitorService
+    container_name: monitor
+    ports:
+      - "8081:8081"
+    depends_on:
+      - drivers
+    networks:
+      - monitor-network
+    environment:
+      SPRING_CONFIG_LOCATION: classpath:/application-docker.yaml
+
+
+
+networks:
+  monitor-network:
+    driver: bridge
+
+

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Фетальный монитор – реалистичный</title>
+<style>
+body { font-family: Arial; background:#f4f6f8; display:flex; flex-direction:column; align-items:center; padding:20px; }
+h1 { color:#333; margin-bottom:10px; }
+#chartContainer { width:90%; max-width:900px; background:#fff; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.1); padding:20px; position:relative; }
+#status { margin-top:10px; font-size:16px; }
+.status-green { color:green; }
+.status-yellow { color:orange; }
+.status-red { color:red; }
+</style>
+</head>
+<body>
+<h1>Фетальный монитор – реалистичный</h1>
+<div id="chartContainer">
+<canvas id="fetalChart"></canvas>
+</div>
+<div id="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+<script>
+const scaler = { mean:[130,80,5], scale:[15,10,2] };
+const thresholds = { bpm:{min:110,max:160}, pressure:{min:70,max:110}, movement:{min:2,max:8} };
+
+class FetalMonitor {
+  constructor(canvasId){
+    this.ctx = document.getElementById(canvasId).getContext('2d');
+    this.data = { labels:[], datasets:[
+      { label:'ЧСС (BPM)', data:[], borderColor:'rgb(75,192,192)', tension:0.3 },
+      { label:'Давление', data:[], borderColor:'rgb(54,162,235)', tension:0.3 },
+      { label:'Движения плода', data:[], borderColor:'rgb(255,206,86)', tension:0.3 },
+      { label:'Прогноз модели', data:[], borderColor:'green', tension:0.3, segment:{borderColor:ctx=>{
+        const y = ctx.p0.parsed.y;
+        return y>160?'red':y>140?'orange':'green';
+      }} }
+    ]};
+
+    const pluginZones = {
+      id:'backgroundZones',
+      beforeDraw: chart=>{
+        const yScale = chart.scales.y;
+        const ctx = chart.ctx;
+        const chartArea = chart.chartArea;
+        // Динамическая зона норм: меняется по последнему прогнозу
+        const last = chart.data.datasets[3].data.slice(-1)[0] || 130;
+        const norm = Math.max(110,last-20);
+        const mid = Math.max(140,last);
+        const high = Math.min(200,last+20);
+
+        ctx.fillStyle='rgba(0,255,0,0.1)';
+        ctx.fillRect(chartArea.left,yScale.getPixelForValue(norm),chartArea.right-chartArea.left,yScale.getPixelForValue(mid)-yScale.getPixelForValue(norm));
+        ctx.fillStyle='rgba(255,165,0,0.1)';
+        ctx.fillRect(chartArea.left,yScale.getPixelForValue(mid),chartArea.right-chartArea.left,yScale.getPixelForValue(high)-yScale.getPixelForValue(mid));
+        ctx.fillStyle='rgba(255,0,0,0.1)';
+        ctx.fillRect(chartArea.left,yScale.getPixelForValue(high),chartArea.right-chartArea.left,yScale.getPixelForValue(200)-yScale.getPixelForValue(high));
+      }
+    };
+
+    this.chart = new Chart(this.ctx,{
+      type:'line',
+      data:this.data,
+      options:{
+        animation:false,
+        responsive:true,
+        plugins:{ tooltip:{ callbacks:{
+          label:ctx=>{
+            const label = ctx.dataset.label;
+            const val = ctx.parsed.y.toFixed(1);
+            if(label==='Прогноз модели'){
+              let risk='Норм';
+              if(val>160) risk='Высокий риск';
+              else if(val>140) risk='Средний риск';
+              return `${label}: ${val} (${risk})`;
+            }
+            return `${label}: ${val}`;
+          }
+        }}},
+        scales:{ x:{title:{display:true,text:'Время'}}, y:{min:0,max:200,title:{display:true,text:'Значение'}} }
+      },
+      plugins:[pluginZones]
+    });
+  }
+
+  addDataPoint(values,prediction){
+    const [bpm,pressure,movement] = values;
+    const timeLabel = new Date().toLocaleTimeString();
+    this.data.labels.push(timeLabel);
+
+    const bpmColor = (bpm<thresholds.bpm.min||bpm>thresholds.bpm.max)?'rgb(255,0,0)':'rgb(75,192,192)';
+    const pressureColor = (pressure<thresholds.pressure.min||pressure>thresholds.pressure.max)?'rgb(255,0,0)':'rgb(54,162,235)';
+    const movementColor = (movement<thresholds.movement.min||movement>thresholds.movement.max)?'rgb(255,0,0)':'rgb(255,206,86)';
+
+    this.data.datasets[0].borderColor = bpmColor;
+    this.data.datasets[1].borderColor = pressureColor;
+    this.data.datasets[2].borderColor = movementColor;
+
+    this.data.datasets[0].data.push(bpm);
+    this.data.datasets[1].data.push(pressure);
+    this.data.datasets[2].data.push(movement);
+    this.data.datasets[3].data.push(prediction);
+
+    let riskText='Норм';
+    if(prediction>160) riskText='Высокий риск';
+    else if(prediction>140) riskText='Средний риск';
+    document.getElementById('status').innerHTML = `
+      ЧСС: <span class="${bpmColor==='rgb(255,0,0)'?'status-red':'status-green'}">${bpm}</span>,
+      Давление: <span class="${pressureColor==='rgb(255,0,0)'?'status-red':'status-green'}">${pressure}</span>,
+      Движения: <span class="${movementColor==='rgb(255,0,0)'?'status-red':'status-green'}">${movement}</span>,
+      Прогноз: <span class="${riskText==='Высокий риск'?'status-red':riskText==='Средний риск'?'status-yellow':'status-green'}">${riskText}</span>
+    `;
+
+    if(this.data.labels.length>50){
+      this.data.labels.shift();
+      for(let i=0;i<this.data.datasets.length;i++){ this.data.datasets[i].data.shift(); }
+    }
+
+    this.chart.update('none');
+  }
+}
+
+const monitor = new FetalMonitor('fetalChart');
+let session;
+async function loadModel(){ session = await ort.InferenceSession.create('catboost_model.onnx'); }
+function scaleData(values){ return values.map((v,i)=>(v-scaler.mean[i])/scaler.scale[i]); }
+async function predict(values){
+  const scaled = Float32Array.from(scaleData(values));
+  const feeds = { input: new ort.Tensor('float32', scaled, [1, scaled.length]) };
+  const results = await session.run(feeds);
+  return results.output.data[0];
+}
+
+async function startSimulation(){
+  await loadModel();
+  setInterval(async ()=>{
+    const bpm=Math.floor(110+Math.random()*50);
+    const pressure=Math.floor(70+Math.random()*40);
+    const movement=Math.floor(Math.random()*10);
+    const prediction = await predict([bpm,pressure,movement]);
+    const predictionScaled = prediction*50+130;
+    monitor.addDataPoint([bpm,pressure,movement],predictionScaled);
+  },500);
+}
+
+startSimulation();
+</script>
+</body>
+</html>

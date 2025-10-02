@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Application Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin: 0 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 0 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        .data-panel {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .data-box {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .data-header {
+            background: #e9ecef;
+            padding: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .data-content {
+            height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background: white;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .messages {
+            height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background: #f8f9fa;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .message-time {
+            color: #6c757d;
+            font-size: 10px;
+        }
+        .message-received { color: #28a745; }
+        .message-sent { color: #007bff; }
+        .message-error { color: #dc3545; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📊 Main Application Test Client</h1>
+
+    <div class="controls">
+        <h3>Управление подключением</h3>
+        <div>
+            <label>SNILS: </label>
+            <input type="text" id="snilsInput" placeholder="123-456-789 00" value="123-456-789 00">
+            <button onclick="connect()" id="connectBtn">Connect</button>
+            <button onclick="startTransmission()" id="startBtn" disabled>Start Transmission</button>
+            <button onclick="getStatus()" id="statusBtn">Status</button>
+            <button onclick="disconnect()" id="disconnectBtn" disabled>Disconnect</button>
+            <button onclick="clearData()" id="clearBtn">Clear</button>
+        </div>
+        <div id="connectionStatus" class="status disconnected">
+            Status: Disconnected
+        </div>
+    </div>
+
+    <div class="data-panel">
+        <div class="data-box">
+            <div class="data-header">❤️ BPM Data</div>
+            <div class="data-content" id="bpmData"></div>
+        </div>
+        <div class="data-box">
+            <div class="data-header">👶 Uterus Data</div>
+            <div class="data-content" id="uterusData"></div>
+        </div>
+    </div>
+
+    <div>
+        <h3>📨 Сообщения WebSocket</h3>
+        <div class="messages" id="messages"></div>
+    </div>
+
+    <div style="margin-top: 20px; font-size: 12px; color: #666;">
+        <strong>Команды:</strong><br>
+        • Подключитесь к основному приложению<br>
+        • Введите SNILS и нажмите "Start Transmission"<br>
+        • Данные будут поступать в реальном времени<br>
+        • Файлы сохраняются в data/bpm/ и data/uterus/
+    </div>
+</div>
+
+<script>
+    let ws = null;
+    let isConnected = false;
+
+    const messages = document.getElementById('messages');
+    const bpmData = document.getElementById('bpmData');
+    const uterusData = document.getElementById('uterusData');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const connectBtn = document.getElementById('connectBtn');
+    const startBtn = document.getElementById('startBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const statusBtn = document.getElementById('statusBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    function connect() {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            appendMessage('Already connected', 'error');
+            return;
+        }
+
+        ws = new WebSocket('ws://localhost:8081/frontend');
+
+        ws.onopen = function(event) {
+            isConnected = true;
+            updateConnectionStatus('Connected to main application', 'connected');
+            updateButtons(true);
+            appendMessage('✅ Connected to main application', 'received');
+        };
+
+        ws.onmessage = function(event) {
+            const data = event.data;
+            appendMessage('📥 ' + data, 'received');
+            handleIncomingMessage(data);
+        };
+
+        ws.onclose = function(event) {
+            isConnected = false;
+            updateConnectionStatus('Disconnected from main application', 'disconnected');
+            updateButtons(false);
+            appendMessage('❌ Disconnected from main application', 'error');
+        };
+
+        ws.onerror = function(error) {
+            appendMessage('💥 WebSocket error: ' + error, 'error');
+        };
+    }
+
+    function startTransmission() {
+        const snils = document.getElementById('snilsInput').value.trim();
+        if (!snils) {
+            appendMessage('❌ Please enter SNILS', 'error');
+            return;
+        }
+
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send('START:' + snils);
+            appendMessage('📤 SENT: START:' + snils, 'sent');
+
+            // Очищаем предыдущие данные
+            bpmData.innerHTML = '';
+            uterusData.innerHTML = '';
+        } else {
+            appendMessage('❌ Not connected to main application', 'error');
+        }
+    }
+
+    function getStatus() {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send('STATUS');
+            appendMessage('📤 SENT: STATUS', 'sent');
+        } else {
+            appendMessage('❌ Not connected to main application', 'error');
+        }
+    }
+
+    function disconnect() {
+        if (ws) {
+            ws.close();
+        }
+    }
+
+    function clearData() {
+        messages.innerHTML = '';
+        bpmData.innerHTML = '';
+        uterusData.innerHTML = '';
+    }
+
+    function handleIncomingMessage(message) {
+        if (message.startsWith('DATA:bpm:')) {
+            const csvLine = message.substring(9);
+            bpmData.innerHTML += '<div>' + csvLine + '</div>';
+            bpmData.scrollTop = bpmData.scrollHeight;
+        } else if (message.startsWith('DATA:uterus:')) {
+            const csvLine = message.substring(12);
+            uterusData.innerHTML += '<div>' + csvLine + '</div>';
+            uterusData.scrollTop = uterusData.scrollHeight;
+        } else if (message.startsWith('FILE_START:')) {
+            const dataType = message.substring(11);
+            appendMessage('📁 Started receiving ' + dataType + ' data', 'received');
+        } else if (message.startsWith('FILE_END:')) {
+            const dataType = message.substring(9);
+            appendMessage('✅ Finished receiving ' + dataType + ' data', 'received');
+        } else if (message.startsWith('TRANSMISSION_STARTED')) {
+            appendMessage('🚀 Data transmission started', 'received');
+        } else if (message.startsWith('TRANSMISSION_COMPLETED')) {
+            appendMessage('🎉 Data transmission completed', 'received');
+        } else if (message.startsWith('STATUS:')) {
+            const status = message.substring(7);
+            updateConnectionStatus('Status: ' + status,
+                status === 'DRIVER_CONNECTED' ? 'connected' : 'disconnected');
+        }
+    }
+
+    function updateConnectionStatus(text, status) {
+        connectionStatus.textContent = text;
+        connectionStatus.className = 'status ' + status;
+    }
+
+    function updateButtons(connected) {
+        connectBtn.disabled = connected;
+        startBtn.disabled = !connected;
+        disconnectBtn.disabled = !connected;
+        statusBtn.disabled = !connected;
+    }
+
+    function appendMessage(text, type) {
+        const time = new Date().toLocaleTimeString();
+        const messageDiv = document.createElement('div');
+        messageDiv.innerHTML = `<span class="message-time">[${time}]</span> <span class="message-${type}">${text}</span>`;
+        messages.appendChild(messageDiv);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Автоподключение при загрузке страницы
+    window.addEventListener('load', function() {
+        appendMessage('🔌 Ready to connect to main application', 'received');
+    });
+</script>
+</body>
+</html>

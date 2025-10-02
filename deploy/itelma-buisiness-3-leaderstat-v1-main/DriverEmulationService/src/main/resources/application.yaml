@@ -1,0 +1,9 @@
+spring:
+  application:
+   name: DriverEmulationService
+server:
+  port: 8080
+
+logging:
+  level:
+    root: debug

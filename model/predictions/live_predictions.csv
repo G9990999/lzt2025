@@ -1,0 +1,4 @@
+BPM,Uterus,Predicted,P_Regular,P_Suspicious,P_Hypoxia
+145,30,Regular,0.85,0.10,0.05
+170,55,Suspicious,0.05,0.90,0.05
+100,80,Hypoxia,0.02,0.08,0.90

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Gradle Imported" enabled="true">
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.40/398c6d2d7c42c96b65e78d2ddc9be0058c163453/lombok-1.18.40.jar" />
+        </processorPath>
+        <module name="itelma-buisiness-3-leaderstat-v1.DriverEmulationService.main" />
+        <module name="itelma-buisiness-3-leaderstat-v1.MonitorService.main" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel target="21">
+      <module name="DriverEmulationService" target="21" />
+      <module name="DriverEmulationService.main" target="21" />
+      <module name="DriverEmulationService.test" target="21" />
+      <module name="itelma.DriverEmulationService" target="21" />
+      <module name="itelma.DriverEmulationService.main" target="21" />
+      <module name="itelma.DriverEmulationService.test" target="21" />
+      <module name="itelma.MonitorService" target="21" />
+      <module name="itelma.MonitorService.main" target="21" />
+      <module name="itelma.MonitorService.test" target="21" />
+      <module name="MonitorService" target="21" />
+      <module name="MonitorService.main" target="21" />
+      <module name="MonitorService.test" target="21" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="DriverEmulationService" options="-parameters" />
+      <module name="DriverEmulationService.main" options="-parameters" />
+      <module name="DriverEmulationService.test" options="-parameters" />
+      <module name="MonitorService" options="-parameters" />
+      <module name="MonitorService.main" options="-parameters" />
+      <module name="MonitorService.test" options="-parameters" />
+      <module name="itelma-buisiness-3-leaderstat-v1.DriverEmulationService" options="-parameters" />
+      <module name="itelma-buisiness-3-leaderstat-v1.DriverEmulationService.main" options="-parameters" />
+      <module name="itelma-buisiness-3-leaderstat-v1.DriverEmulationService.test" options="-parameters" />
+      <module name="itelma-buisiness-3-leaderstat-v1.MonitorService" options="-parameters" />
+      <module name="itelma-buisiness-3-leaderstat-v1.MonitorService.main" options="-parameters" />
+      <module name="itelma-buisiness-3-leaderstat-v1.MonitorService.test" options="-parameters" />
+      <module name="itelma.DriverEmulationService" options="-parameters" />
+      <module name="itelma.DriverEmulationService.main" options="-parameters" />
+      <module name="itelma.DriverEmulationService.test" options="-parameters" />
+      <module name="itelma.MonitorService" options="-parameters" />
+      <module name="itelma.MonitorService.main" options="-parameters" />
+      <module name="itelma.MonitorService.test" options="-parameters" />
+    </option>
+  </component>
+</project>

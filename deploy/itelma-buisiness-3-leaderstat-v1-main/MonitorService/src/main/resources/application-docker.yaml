@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: MonitorService
+
+server:
+  port: 8081
+
+logging:
+  level:
+    root: debug
+
+
+driver:
+  ws:
+    url: ws://drivers:8080/driver-data
